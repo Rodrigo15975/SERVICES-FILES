@@ -1,11 +1,15 @@
-import { Injectable, Logger } from '@nestjs/common'
-import { CreateFileDto } from './dto/create-file.dto'
-import { UpdateFileDto } from './dto/update-file.dto'
+import {
+  DeleteObjectCommand,
+  PutObjectCommand,
+  S3Client,
+} from '@aws-sdk/client-s3'
+import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3'
+import { MemoryStoredFile } from 'nestjs-form-data'
 import * as path from 'path'
 import { v4 as uuidV4 } from 'uuid'
-import { MemoryStoredFile } from 'nestjs-form-data'
+import { CreateFileDto } from './dto/create-file.dto'
+import { HandleHttps } from './utils/handled-https'
 @Injectable()
 export class FilesService {
   private readonly logger: Logger = new Logger(FilesService.name)
@@ -29,10 +33,12 @@ export class FilesService {
       return { url }
     } catch (error) {
       this.logger.error(error, error.message)
+      throw new HttpException(
+        'Error to upload file',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      )
     }
   }
-
-  getUrl() {}
 
   private createCommand(file: MemoryStoredFile, Key: string) {
     return new PutObjectCommand({
@@ -47,14 +53,31 @@ export class FilesService {
       },
     })
   }
-
-  update(id: number, updateFileDto: UpdateFileDto) {
-    console.log(updateFileDto)
-
-    return `This action updates a #${id} file`
+  private deleteCommand(Key: string) {
+    return new DeleteObjectCommand({
+      Bucket: this.bucketName,
+      Key,
+    })
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} file`
+  async remove(key: string) {
+    try {
+      const commandDelete = this.deleteCommand(key)
+      await this.S3.send(commandDelete)
+      return HandleHttps.ResponseSuccessfullyMessagePattern(
+        'File delete successfully',
+        HttpStatus.ACCEPTED,
+        FilesService.name,
+      )
+    } catch (error) {
+      this.logger.error(error.message, error, {
+        message: 'Error to be delete command file-remove',
+        service: FilesService.name,
+      })
+      throw new HttpException(
+        'Error to delete file',
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      )
+    }
   }
 }
