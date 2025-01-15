@@ -3,7 +3,13 @@ import {
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3'
-import { HttpException, HttpStatus, Injectable, Logger } from '@nestjs/common'
+import {
+  BadRequestException,
+  HttpException,
+  HttpStatus,
+  Injectable,
+  Logger,
+} from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { MemoryStoredFile } from 'nestjs-form-data'
 import * as path from 'path'
@@ -21,6 +27,12 @@ export class FilesService {
     this.bucketName = this.configService.getOrThrow<string>('S3_BUCKET_NAME')
   }
   async create(createFileDto: CreateFileDto, name: string) {
+    if (!name)
+      throw new BadRequestException({
+        message: "Name doesn't exist",
+        cause: name,
+        status: HttpStatus.BAD_REQUEST,
+      })
     try {
       const { image } = createFileDto
       const typeFile = path.extname(image.originalName)
