@@ -7,7 +7,6 @@ dotenv.config()
 async function bootstrap() {
   const app = await NestFactory.create(AppModule)
   app.enableCors({
-    credentials: true,
     origin: true,
   })
 
@@ -18,7 +17,15 @@ async function bootstrap() {
   )
   const port = Number(process.env.PORT) || 8080
   await app.listen(port, () => {
-    console.log('listening on port ' + port)
+    if (process.env.NODE_ENV === 'development') {
+      return console.log(
+        'listening on port ' + port,
+        ' mode: ',
+        process.env.NODE_ENV,
+      )
+    }
+
+    console.log('listening on port ' + port, ' mode: ', process.env.NODE_ENV)
   })
 }
 bootstrap()
