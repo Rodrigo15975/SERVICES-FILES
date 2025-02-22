@@ -5,17 +5,20 @@ service: services-file
 
 provider:
   name: aws
+  logRetentionInDays: 7
   runtime: nodejs20.x
-  architecture: arm64
+  stage: ${opt:stage, 'development'}
   region: us-east-1
-  # environment:
-  #   S3_ACCESS_KEY: ${env:S3_ACCESS_KEY}
-  #   S3_SECRET_ACCESS_KEY: ${env:S3_SECRET_ACCESS_KEY}
-  #   S3_REGION: ${env:S3_REGION}
-  #   S3_BUCKET_NAME: ${env:S3_BUCKET_NAME}
-  # REDIS_HOST: ${env:REDIS_HOST}
-  # REDIS_PORT: ${env:REDIS_PORT}
-  # REDIS_PASSWORD: ${env:REDIS_PASSWORD}
+  timeout: 15
+  apiGateway:
+    shouldStartNameWithService: true
+  memorySize: 128
+  environment:
+    NODE_ENV: ${self:provider.stage} #Significa que NODE_ENV será igual al stage configurado en el provider.
+    S3_ACCESS_KEY: ${ssm:S3_ACCESS_KEY}
+    S3_SECRET_ACCESS_KEY: ${ssm:S3_SECRET_ACCESS_KEY}
+    S3_REGION: ${ssm:S3_REGION}
+    S3_BUCKET_NAME: ${ssm:S3_BUCKET_NAME}
 
 functions:
   main:
