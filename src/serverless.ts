@@ -1,18 +1,23 @@
 import { NestFactory } from '@nestjs/core'
-import { configure as serverlessExpress } from '@vendia/serverless-express'
-// import { Callback, Context, Handler } from 'aws-lambda'
+import serverlessExpress from '@codegenie/serverless-express'
+import type { Callback, Context, Handler } from 'aws-lambda'
 import { AppModule } from './app.module'
 
-let server
+let server: Handler
+const getApp = async () => await NestFactory.create(AppModule)
 
-// probar con task sin db
-export const handler = async (event, context) => {
-  if (!server) {
-    const app = await NestFactory.create(AppModule)
-    await app.init()
-    server = serverlessExpress({
-      app: app.getHttpAdapter().getInstance(),
-    })
-  }
-  return server(event, context)
+const bootstrap = async (): Promise<Handler> => {
+  const app = await getApp()
+  await app.init()
+  const expressApp = app.getHttpAdapter().getInstance()
+  return serverlessExpress({ app: expressApp })
+}
+
+export const handler: Handler = async (
+  event: any,
+  context: Context,
+  callback: Callback,
+) => {
+  server = server ?? (await bootstrap())
+  return server(event, context, callback)
 }
