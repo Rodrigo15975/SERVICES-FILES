@@ -1,7 +1,11 @@
-# "org" ensures this Service is used with the correct Serverless Framework Access Key.
 org: rumplergd
-# "service" is the name of this project. This will also be added to your AWS resource names.
-service: services-file
+service: services-file-${opt:stage, 'development'}
+configValidationMode: error
+
+custom:
+  prune:
+    automatic: true
+    number: 1
 
 provider:
   name: aws
@@ -14,19 +18,28 @@ provider:
     shouldStartNameWithService: true
   memorySize: 128
   environment:
-    NODE_ENV: ${self:provider.stage} #Significa que NODE_ENV será igual al stage configurado en el provider.
+    NODE_ENV: ${self:provider.stage}
     S3_ACCESS_KEY: ${ssm:S3_ACCESS_KEY}
     S3_SECRET_ACCESS_KEY: ${ssm:S3_SECRET_ACCESS_KEY}
     S3_REGION: ${ssm:S3_REGION}
     S3_BUCKET_NAME: ${ssm:S3_BUCKET_NAME}
 
+package:
+  individually: true
+  excludeDevDependencies: false
+  patterns:
+    - "dist/**"
+    - "!node_modules/**"
+
 functions:
-  main:
+  handler:
     handler: dist/serverless.handler
     events:
       - httpApi:
-          method: ANY
           path: /{proxy+}
+          method: any
 
 plugins:
+  - serverless-plugin-common-excludes
+  - serverless-plugin-include-dependencies
   - serverless-offline
